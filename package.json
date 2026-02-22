@@ -1,0 +1,26 @@
+{
+  "name": "hybrid-roofing-forms-portal",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "live-server --port=3000 --open=/index.html",
+    "build:css": "lessc less/styles.less css/styles.css",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Callowhill-Web-Designs/Hybrid-Roofing-Forms-Portal.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/Callowhill-Web-Designs/Hybrid-Roofing-Forms-Portal/issues"
+  },
+  "homepage": "https://github.com/Callowhill-Web-Designs/Hybrid-Roofing-Forms-Portal#readme",
+  "devDependencies": {
+    "live-server": "^1.2.2"
+  }
+}

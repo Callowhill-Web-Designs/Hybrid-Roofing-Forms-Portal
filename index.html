@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Hybrid Roofing — Forms Portal</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <!-- ==================== MAIN APP ==================== -->
+  <div id="app" class="app">
+
+    <!-- ── Top Navigation Bar ── -->
+    <header class="top-nav">
+      <div class="top-nav__left">
+        <img class="top-nav__logo" src="assets/hybrid-logo-white.svg" alt="Hybrid Roofing" height="36">
+      </div>
+
+      <div class="top-nav__center">
+        <h1>Form Submissions Portal</h1>
+      </div>
+
+      <div class="top-nav__right">
+        <span id="user-display" class="top-nav__welcome">Welcome, Donta</span>
+        <button id="refresh-btn" class="btn-refresh" type="button">
+          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24"
+            fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="23 4 23 10 17 10"/>
+            <polyline points="1 20 1 14 7 14"/>
+            <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"/>
+            <path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"/>
+          </svg>
+          Refresh Listings
+        </button>
+      </div>
+    </header>
+
+    <!-- ── Body: Sidebar + Content ── -->
+    <div class="app-body">
+
+      <!-- Left Sidebar -->
+      <aside class="sidebar">
+        <nav class="sidebar__nav">
+          <button class="sidebar__tab active" data-tab="pending" type="button">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="12" cy="12" r="10"/>
+              <polyline points="12 6 12 12 16 14"/>
+            </svg>
+            Pending
+          </button>
+          <button class="sidebar__tab" data-tab="success" type="button">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/>
+              <polyline points="22 4 12 14.01 9 11.01"/>
+            </svg>
+            Success
+          </button>
+          <button class="sidebar__tab" data-tab="spam" type="button">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polygon points="7.86 2 16.14 2 22 7.86 22 16.14 16.14 22 7.86 22 2 16.14 2 7.86 7.86 2"/>
+              <line x1="12" y1="8" x2="12" y2="12"/>
+              <line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            Spam
+          </button>
+          <button class="sidebar__tab" data-tab="all" type="button">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24"
+              fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="3" width="7" height="7"/>
+              <rect x="14" y="3" width="7" height="7"/>
+              <rect x="14" y="14" width="7" height="7"/>
+              <rect x="3" y="14" width="7" height="7"/>
+            </svg>
+            All
+          </button>
+        </nav>
+      </aside>
+
+      <!-- Main Content Area -->
+      <main class="app-main">
+        <div class="tab-panel active" data-panel="pending">
+          <div class="panel-header">
+            <div>
+              <h2>Pending Submissions</h2>
+              <p class="panel-description">Form submissions awaiting review.</p>
+            </div>
+            <div class="sort-control">
+              <label for="sort-pending">Sort by:</label>
+              <select id="sort-pending" class="sort-select" data-list="pending">
+                <option value="newest">Newest First</option>
+                <option value="oldest">Oldest First</option>
+              </select>
+            </div>
+          </div>
+          <div class="submissions-list" id="pending-list">
+            <div class="empty-state">No pending submissions.</div>
+          </div>
+        </div>
+
+        <div class="tab-panel" data-panel="success">
+          <div class="panel-header">
+            <div>
+              <h2>Successful Submissions</h2>
+              <p class="panel-description">Approved and processed submissions.</p>
+            </div>
+            <div class="sort-control">
+              <label for="sort-success">Sort by:</label>
+              <select id="sort-success" class="sort-select" data-list="success">
+                <option value="newest">Newest First</option>
+                <option value="oldest">Oldest First</option>
+              </select>
+            </div>
+          </div>
+          <div class="submissions-list" id="success-list">
+            <div class="empty-state">No successful submissions.</div>
+          </div>
+        </div>
+
+        <div class="tab-panel" data-panel="spam">
+          <div class="panel-header">
+            <div>
+              <h2>Spam Submissions</h2>
+              <p class="panel-description">Submissions flagged as spam.</p>
+            </div>
+            <div class="sort-control">
+              <label for="sort-spam">Sort by:</label>
+              <select id="sort-spam" class="sort-select" data-list="spam">
+                <option value="newest">Newest First</option>
+                <option value="oldest">Oldest First</option>
+              </select>
+            </div>
+          </div>
+          <div class="submissions-list" id="spam-list">
+            <div class="empty-state">No spam submissions.</div>
+          </div>
+        </div>
+
+        <div class="tab-panel" data-panel="all">
+          <div class="panel-header">
+            <div>
+              <h2>All Submissions</h2>
+              <p class="panel-description">Every submission across all categories.</p>
+            </div>
+            <div class="sort-control">
+              <label for="sort-all">Sort by:</label>
+              <select id="sort-all" class="sort-select" data-list="all">
+                <option value="newest">Newest First</option>
+                <option value="oldest">Oldest First</option>
+              </select>
+            </div>
+          </div>
+          <div class="submissions-list" id="all-list">
+            <div class="empty-state">No submissions yet.</div>
+          </div>
+        </div>
+      </main>
+
+    </div>
+  </div>
+
+  <script src="js/sheets.js"></script>
+  <script src="js/dashboard.js"></script>
+</body>
+</html>
