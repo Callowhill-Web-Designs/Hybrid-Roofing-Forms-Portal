@@ -55,10 +55,10 @@
       html += '  <div class="sub-card__fields">';
       html += '    <span class="sub-card__time">' + escapeHtml(row['Time'] || '') + '</span>';
       html += '    <span class="sub-card__name">' + escapeHtml(row['Name'] || '') + '</span>';
-      html += '    <span class="sub-card__address">' + escapeHtml(row['Address'] || '') + '</span>';
       if (statusVal) {
         html += '  <span class="' + badgeCls + '">' + escapeHtml(statusVal) + '</span>';
       }
+      html += '    <span class="sub-card__address">' + escapeHtml(row['Address'] || '') + '</span>';
       html += '  </div>';
       html += '  <div class="sub-card__actions">';
       var statusLower = statusVal.toLowerCase();
@@ -81,12 +81,20 @@
       DETAIL_COLS.forEach(function (col) {
         var val = row[col] || '';
         if (val) {
-          html += '<div class="detail-item">';
+          var itemClass = (col === 'Message') ? 'detail-item detail-item--wide' : 'detail-item';
+          html += '<div class="' + itemClass + '">';
           html += '  <span class="detail-label">' + escapeHtml(col) + '</span>';
           html += '  <span class="detail-value">' + escapeHtml(val) + '</span>';
           html += '</div>';
         }
       });
+      html += '  </div>';
+      
+      // ── Notes section ──
+      html += '  <div class="notes-section">';
+      html += '    <label class="notes-label">Notes</label>';
+      html += '    <textarea class="notes-textarea" placeholder="Add custom notes here..." rows="3">' + escapeHtml(row['Notes'] || '') + '</textarea>';
+      html += '    <button type="button" class="btn-save-notes">Save Notes</button>';
       html += '  </div>';
       html += '</div>';
 
@@ -230,6 +238,39 @@
           });
       });
     });
+
+    // ── Save Notes button handlers ──
+    document.querySelectorAll('.btn-save-notes').forEach(function (btn) {
+      btn.addEventListener('click', function (e) {
+        e.stopPropagation();
+        var card    = this.closest('.sub-card');
+        var index   = parseInt(card.dataset.index, 10);
+        var tabName = card.dataset.tab;
+        var rowData = currentData[tabName][index];
+        var textarea = card.querySelector('.notes-textarea');
+        var notes = textarea.value.trim();
+
+        if (!rowData) return;
+
+        // Disable button and show loading
+        btn.disabled = true;
+        btn.textContent = 'Saving...';
+
+        SheetsService.updateNotes(rowData, notes)
+          .then(function (response) {
+            showNotification('Notes saved successfully.', 'success');
+            // Update the current data with the new notes
+            currentData[tabName][index]['Notes'] = notes;
+            btn.disabled = false;
+            btn.textContent = 'Save Notes';
+          })
+          .catch(function (err) {
+            showNotification('Failed to save notes: ' + err.message, 'error');
+            btn.disabled = false;
+            btn.textContent = 'Save Notes';
+          });
+      });
+    });
   }
 
   // ── Notification system ────────────────────────────────────────
@@ -311,6 +352,59 @@
     });
   });
 
-  // ── Initial load ──────────────────────────────────────────────
-  loadData();
+  // ── Tutorial modal handlers ───────────────────────────────────
+  var tutorialModal = document.getElementById('tutorial-modal');
+  var tutorialBtn = document.getElementById('tutorial-btn');
+  var modalClose = tutorialModal.querySelector('.modal-close');
+  var modalBtnClose = tutorialModal.querySelector('.btn-modal-close');
+  var modalOverlay = tutorialModal.querySelector('.modal-overlay');
+
+  function openTutorial() {
+    tutorialModal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+  }
+
+  function closeTutorial() {
+    tutorialModal.classList.remove('active');
+    document.body.style.overflow = '';
+  }
+
+  if (tutorialBtn) {
+    tutorialBtn.addEventListener('click', openTutorial);
+  }
+
+  if (modalClose) {
+    modalClose.addEventListener('click', closeTutorial);
+  }
+
+  if (modalBtnClose) {
+    modalBtnClose.addEventListener('click', closeTutorial);
+  }
+
+  if (modalOverlay) {
+    modalOverlay.addEventListener('click', closeTutorial);
+  }
+
+  // Close modal on Escape key
+  document.addEventListener('keydown', function (e) {
+    if (e.key === 'Escape' && tutorialModal.classList.contains('active')) {
+      closeTutorial();
+    }
+  });
+
+  // ── Authentication-aware initialization ───────────────────────
+  // Only load data after successful authentication
+  window.addEventListener('auth-success', function() {
+    loadData();
+  });
+
+  // Clear data on logout
+  window.addEventListener('auth-logout', function() {
+    currentData = { pending: [], success: [], spam: [], all: [] };
+  });
+
+  // If already authenticated (page refresh/remembered device), load data
+  if (typeof AuthService !== 'undefined' && AuthService.isAuthenticated()) {
+    loadData();
+  }
 })();

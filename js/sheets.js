@@ -15,7 +15,7 @@ var SheetsService = (function () {
   var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbwQaNutqMFlOPvyX1Ff2CD8ShTCwPf029rcr6r89GgEapsTYHdHgu98tbYhLSR7E9dQ/exec';
 
   // Column headers we expect (order matters — must match sheet)
-  var COLUMNS = ['Time', 'Name', 'Email', 'Phone', 'Address', 'City', 'State', 'ZIP', 'Message', 'IP', 'Status'];
+  var COLUMNS = ['Time', 'Name', 'Email', 'Phone', 'Address', 'City', 'State', 'ZIP', 'Message', 'IP', 'Status', 'Notes'];
 
   /**
    * Fetch rows from a specific worksheet tab.
@@ -78,7 +78,8 @@ var SheetsService = (function () {
     fetchAll:   fetchAll,
     COLUMNS:    COLUMNS,
     approveRow: approveRow,
-    deleteRow:  deleteRow
+    deleteRow:  deleteRow,
+    updateNotes: updateNotes
   };
 
   /**
@@ -119,5 +120,31 @@ var SheetsService = (function () {
    */
   function deleteRow(rowData) {
     return postAction('delete', rowData);
+  }
+
+  /**
+   * Update notes for a submission.
+   * @param {Object} rowData - The full row object
+   * @param {string} notes - The notes text to save
+   * @returns {Promise<Object>}
+   */
+  function updateNotes(rowData, notes) {
+    return fetch(APPS_SCRIPT_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'text/plain' },
+      body: JSON.stringify({ action: 'updateNotes', rowData: rowData, notes: notes })
+    })
+    .then(function (res) {
+      if (!res.ok) {
+        throw new Error('Server error: ' + res.status);
+      }
+      return res.json();
+    })
+    .then(function (data) {
+      if (!data.success) {
+        throw new Error(data.error || 'Unknown error');
+      }
+      return data;
+    });
   }
 })();
