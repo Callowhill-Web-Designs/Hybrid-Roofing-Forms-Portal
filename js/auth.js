@@ -8,21 +8,47 @@
 var AuthService = (function () {
   'use strict';
 
-  // ── DOM references ──
-  var loginScreen   = document.getElementById('login-screen');
-  var app           = document.getElementById('app');
-  var loginForm     = document.getElementById('login-form');
-  var usernameInput = document.getElementById('username');
-  var passwordInput = document.getElementById('password');
-  var rememberCheckbox = document.getElementById('remember-device');
-  var togglePwdBtn  = document.getElementById('toggle-password');
-  var loginError    = document.getElementById('login-error');
-  var userDisplay   = document.getElementById('user-display');
-  var logoutBtn     = document.getElementById('logout-btn');
+  // Wait for DOM to be ready
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', init);
+  } else {
+    init();
+  }
 
-  // ── Session storage keys (from config) ──
-  var STORAGE_KEY = AppConfig.session.storageKey;
-  var REMEMBER_KEY = AppConfig.session.rememberKey;
+  function init() {
+    console.log('[Auth] Initializing auth system...');
+    
+    // ── DOM references ──
+    var loginScreen   = document.getElementById('login-screen');
+    var app           = document.getElementById('app');
+    var loginForm     = document.getElementById('login-form');
+    var usernameInput = document.getElementById('username');
+    var passwordInput = document.getElementById('password');
+    var rememberCheckbox = document.getElementById('remember-device');
+    var togglePwdBtn  = document.getElementById('toggle-password');
+    var loginError    = document.getElementById('login-error');
+    var userDisplay   = document.getElementById('user-display');
+    var logoutBtn     = document.getElementById('logout-btn');
+
+    console.log('[Auth] DOM Elements:', {
+      loginScreen: !!loginScreen,
+      app: !!app,
+      loginForm: !!loginForm,
+      usernameInput: !!usernameInput,
+      passwordInput: !!passwordInput
+    });
+
+    // Check if config is loaded
+    if (typeof AppConfig === 'undefined') {
+      console.error('AppConfig not found. Make sure config.js is loaded before auth.js');
+      return;
+    }
+    
+    console.log('[Auth] AppConfig loaded successfully');
+
+    // ── Session storage keys (from config) ──
+    var STORAGE_KEY = AppConfig.session.storageKey;
+    var REMEMBER_KEY = AppConfig.session.rememberKey;
 
   // ── Session helpers ───────────────────────────────────────────
   function getSession() {
@@ -38,7 +64,7 @@ var AuthService = (function () {
         return JSON.parse(session);
       }
       return null;
-    } catch {
+    } catch (e) {
       return null;
     }
   }
@@ -69,6 +95,7 @@ var AuthService = (function () {
 
   // ── UI toggles ────────────────────────────────────────────────
   function showApp(username) {
+    console.log('[Auth] Showing app for user:', username);
     if (loginScreen) loginScreen.hidden = true;
     if (app) app.hidden = false;
     if (userDisplay) userDisplay.textContent = 'Welcome, ' + username;
@@ -78,6 +105,7 @@ var AuthService = (function () {
   }
 
   function showLogin() {
+    console.log('[Auth] Showing login screen');
     if (app) app.hidden = true;
     if (loginScreen) loginScreen.hidden = false;
     if (usernameInput) {
@@ -97,23 +125,31 @@ var AuthService = (function () {
 
   // ── Event: form submit ────────────────────────────────────────
   if (loginForm) {
+    console.log('[Auth] Attaching submit event listener to login form');
     loginForm.addEventListener('submit', function (e) {
+      console.log('[Auth] Form submitted!');
       e.preventDefault();
 
       var username = usernameInput.value.trim();
       var password = passwordInput.value;
       var remember = rememberCheckbox.checked;
 
+      console.log('[Auth] Authenticating user:', username, 'Remember:', remember);
+
       if (authenticate(username, password)) {
+        console.log('[Auth] Authentication successful');
         loginError.hidden = true;
         setSession(username, remember);
         showApp(username);
       } else {
+        console.log('[Auth] Authentication failed');
         loginError.hidden = false;
         passwordInput.value = '';
         passwordInput.focus();
       }
     });
+  } else {
+    console.error('[Auth] Login form not found!');
   }
 
   // ── Event: toggle password visibility ─────────────────────────
@@ -140,20 +176,43 @@ var AuthService = (function () {
   }
 
   // ── Init: check existing session ──────────────────────────────
-  var session = getSession();
-  if (session && session.username) {
-    showApp(session.username);
-  } else {
-    showLogin();
-  }
-
-  // ── Public API ────────────────────────────────────────────────
-  return {
-    isAuthenticated: isAuthenticated,
-    getSession: getSession,
-    logout: function() {
-      clearSession();
+    var session = getSession();
+    console.log('[Auth] Checking existing session:', session);
+    if (session && session.username) {
+      showApp(session.username);
+    } else {
       showLogin();
+    }
+    
+    console.log('[Auth] Initialization complete');
+  } // End of init function
+
+  // ── Public API (available immediately) ────────────────────────
+  return {
+    isAuthenticated: function() {
+      try {
+        var remembered = localStorage.getItem(AppConfig.session.rememberKey);
+        if (remembered) return true;
+        var session = sessionStorage.getItem(AppConfig.session.storageKey);
+        return session !== null;
+      } catch (e) {
+        return false;
+      }
+    },
+    getSession: function() {
+      try {
+        var remembered = localStorage.getItem(AppConfig.session.rememberKey);
+        if (remembered) return JSON.parse(remembered);
+        var session = sessionStorage.getItem(AppConfig.session.storageKey);
+        if (session) return JSON.parse(session);
+        return null;
+      } catch (e) {
+        return null;
+      }
+    },
+    logout: function() {
+      sessionStorage.removeItem(AppConfig.session.storageKey);
+      localStorage.removeItem(AppConfig.session.rememberKey);
     }
   };
 })();

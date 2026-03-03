@@ -12,6 +12,9 @@ body {
   color: #202124;
   background: #f8f9fa;
 }
+[hidden] {
+  display: none !important;
+}
 .login-screen {
   display: flex;
   flex-direction: column;
