@@ -1,18 +1,18 @@
 # Hybrid Roofing Forms Portal - Git Ignore
 
-# Configuration file with credentials (IMPORTANT - DO NOT COMMIT)
-js/config.js
-
 # Node modules
 node_modules/
 
-# Environment variables
+# Environment variables (used for local testing with Netlify CLI)
 .env
 .env.local
 
 # Build outputs
 dist/
 build/
+
+# Netlify
+.netlify/
 
 # IDE and editor files
 .vscode/

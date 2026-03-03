@@ -2,11 +2,15 @@
  * Hybrid Roofing Forms Portal — Authentication
  *
  * Handles user login, session management, and "remember device" functionality.
- * Credentials are stored in config.js (not committed to version control).
+ * Uses Netlify Functions for secure server-side authentication.
  */
 
 var AuthService = (function () {
   'use strict';
+
+  // ── Configuration ──
+  var STORAGE_KEY = 'hybridRoofing_authToken';
+  var REMEMBER_KEY = 'hybridRoofing_rememberDevice';
 
   // Wait for DOM to be ready
   if (document.readyState === 'loading') {
@@ -38,18 +42,6 @@ var AuthService = (function () {
       passwordInput: !!passwordInput
     });
 
-    // Check if config is loaded
-    if (typeof AppConfig === 'undefined') {
-      console.error('AppConfig not found. Make sure config.js is loaded before auth.js');
-      return;
-    }
-    
-    console.log('[Auth] AppConfig loaded successfully');
-
-    // ── Session storage keys (from config) ──
-    var STORAGE_KEY = AppConfig.session.storageKey;
-    var REMEMBER_KEY = AppConfig.session.rememberKey;
-
   // ── Session helpers ───────────────────────────────────────────
   function getSession() {
     try {
@@ -69,8 +61,9 @@ var AuthService = (function () {
     }
   }
 
-  function setSession(username, remember) {
+  function setSession(token, username, remember) {
     var sessionData = JSON.stringify({ 
+      token: token,
       username: username, 
       ts: Date.now() 
     });
@@ -89,8 +82,43 @@ var AuthService = (function () {
     localStorage.removeItem(REMEMBER_KEY);
   }
 
-  function isAuthenticated() {
-    return getSession() !== null;
+  // ── Server Communication ──────────────────────────────────────
+  
+  /**
+   * Authenticate user with Netlify Function
+   */
+  async function authenticate(username, password) {
+    try {
+      console.log('[Auth] Calling Netlify function for authentication...');
+      var response = await fetch('/.netlify/functions/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ username: username, password: password })
+      });
+      
+      var data = await response.json();
+      console.log('[Auth] Server response:', data.success ? 'Success' : 'Failed');
+      return data;
+    } catch (error) {
+      console.error('[Auth] Login error:', error);
+      return { success: false, error: 'Connection error' };
+    }
+  }
+
+  /**
+   * Validate session token with Netlify Function
+   */
+  async function validateSessionToken(token) {
+    try {
+      console.log('[Auth] Validating session token...');
+      var response = await fetch('/.netlify/functions/validate-session?token=' + encodeURIComponent(token));
+      var data = await response.json();
+      console.log('[Auth] Token validation:', data.valid ? 'Valid' : 'Invalid');
+      return data;
+    } catch (error) {
+      console.error('[Auth] Validation error:', error);
+      return { valid: false };
+    }
   }
 
   // ── UI toggles ────────────────────────────────────────────────
@@ -104,7 +132,7 @@ var AuthService = (function () {
     window.dispatchEvent(new CustomEvent('auth-success', { detail: { username: username } }));
   }
 
-  function showLogin() {
+  function showLogin(errorMessage) {
     console.log('[Auth] Showing login screen');
     if (app) app.hidden = true;
     if (loginScreen) loginScreen.hidden = false;
@@ -114,19 +142,19 @@ var AuthService = (function () {
     }
     if (passwordInput) passwordInput.value = '';
     if (rememberCheckbox) rememberCheckbox.checked = false;
-    if (loginError) loginError.hidden = true;
-  }
-
-  // ── Validate credentials ──────────────────────────────────────
-  function authenticate(username, password) {
-    return username === AppConfig.credentials.username && 
-           password === AppConfig.credentials.password;
+    
+    if (errorMessage && loginError) {
+      loginError.textContent = errorMessage;
+      loginError.hidden = false;
+    } else if (loginError) {
+      loginError.hidden = true;
+    }
   }
 
   // ── Event: form submit ────────────────────────────────────────
   if (loginForm) {
     console.log('[Auth] Attaching submit event listener to login form');
-    loginForm.addEventListener('submit', function (e) {
+    loginForm.addEventListener('submit', async function (e) {
       console.log('[Auth] Form submitted!');
       e.preventDefault();
 
@@ -134,18 +162,36 @@ var AuthService = (function () {
       var password = passwordInput.value;
       var remember = rememberCheckbox.checked;
 
+      // Disable form during submission
+      var submitBtn = loginForm.querySelector('button[type="submit"]');
+      if (submitBtn) {
+        submitBtn.disabled = true;
+        submitBtn.textContent = 'Signing in...';
+      }
+
       console.log('[Auth] Authenticating user:', username, 'Remember:', remember);
 
-      if (authenticate(username, password)) {
+      var result = await authenticate(username, password);
+      
+      if (result.success) {
         console.log('[Auth] Authentication successful');
-        loginError.hidden = true;
-        setSession(username, remember);
-        showApp(username);
+        if (loginError) loginError.hidden = true;
+        setSession(result.token, result.username, remember);
+        showApp(result.username);
       } else {
         console.log('[Auth] Authentication failed');
-        loginError.hidden = false;
+        if (loginError) {
+          loginError.textContent = result.error || 'Invalid username or password. Please try again.';
+          loginError.hidden = false;
+        }
         passwordInput.value = '';
         passwordInput.focus();
+      }
+
+      // Re-enable form
+      if (submitBtn) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = 'Sign In';
       }
     });
   } else {
@@ -176,43 +222,41 @@ var AuthService = (function () {
   }
 
   // ── Init: check existing session ──────────────────────────────
+  (async function() {
     var session = getSession();
-    console.log('[Auth] Checking existing session:', session);
-    if (session && session.username) {
-      showApp(session.username);
+    console.log('[Auth] Checking existing session:', session ? 'Found' : 'None');
+    
+    if (session && session.token && session.username) {
+      // Validate the token with the server
+      var validation = await validateSessionToken(session.token);
+      
+      if (validation.valid) {
+        console.log('[Auth] Session is valid, logging in automatically');
+        showApp(session.username);
+      } else {
+        console.log('[Auth] Session is invalid or expired');
+        clearSession();
+        showLogin();
+      }
     } else {
       showLogin();
     }
     
     console.log('[Auth] Initialization complete');
+  })();
   } // End of init function
 
   // ── Public API (available immediately) ────────────────────────
   return {
     isAuthenticated: function() {
-      try {
-        var remembered = localStorage.getItem(AppConfig.session.rememberKey);
-        if (remembered) return true;
-        var session = sessionStorage.getItem(AppConfig.session.storageKey);
-        return session !== null;
-      } catch (e) {
-        return false;
-      }
+      var session = getSession();
+      return session !== null && session.token !== null;
     },
     getSession: function() {
-      try {
-        var remembered = localStorage.getItem(AppConfig.session.rememberKey);
-        if (remembered) return JSON.parse(remembered);
-        var session = sessionStorage.getItem(AppConfig.session.storageKey);
-        if (session) return JSON.parse(session);
-        return null;
-      } catch (e) {
-        return null;
-      }
+      return getSession();
     },
     logout: function() {
-      sessionStorage.removeItem(AppConfig.session.storageKey);
-      localStorage.removeItem(AppConfig.session.rememberKey);
+      clearSession();
     }
   };
 })();

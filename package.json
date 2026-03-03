@@ -20,6 +20,9 @@
     "url": "https://github.com/Callowhill-Web-Designs/Hybrid-Roofing-Forms-Portal/issues"
   },
   "homepage": "https://github.com/Callowhill-Web-Designs/Hybrid-Roofing-Forms-Portal#readme",
+  "dependencies": {
+    "jsonwebtoken": "^9.0.2"
+  },
   "devDependencies": {
     "live-server": "^1.2.2"
   }
