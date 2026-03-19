@@ -110,6 +110,40 @@
     return div.innerHTML;
   }
 
+  // ── Helper: Parse date string to timestamp (Safari-compatible) ──
+  function parseTimeToTimestamp(timeStr) {
+    if (!timeStr) return 0;
+    
+    // Try direct Date parsing first
+    var date = new Date(timeStr);
+    
+    // Check if the date is valid
+    if (!isNaN(date.getTime())) {
+      return date.getTime();
+    }
+    
+    // Safari fallback: Try to parse common Google Sheets formats
+    // Format: "MM/DD/YYYY HH:MM:SS" or "M/D/YYYY H:MM:SS"
+    var match = timeStr.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})\s+(\d{1,2}):(\d{2}):(\d{2})$/);
+    if (match) {
+      // month is 0-indexed in JavaScript Date
+      var parsedDate = new Date(
+        parseInt(match[3], 10), // year
+        parseInt(match[1], 10) - 1, // month (0-indexed)
+        parseInt(match[2], 10), // day
+        parseInt(match[4], 10), // hours
+        parseInt(match[5], 10), // minutes
+        parseInt(match[6], 10)  // seconds
+      );
+      if (!isNaN(parsedDate.getTime())) {
+        return parsedDate.getTime();
+      }
+    }
+    
+    // If all parsing fails, return 0 (oldest possible)
+    return 0;
+  }
+
   // ── Sort data by Time field ──────────────────────────────────
   function sortData(rows, order) {
     if (!rows || rows.length === 0) return rows;
@@ -117,8 +151,8 @@
     var sorted = rows.slice(); // Create a copy to avoid mutating original
     
     sorted.sort(function (a, b) {
-      var timeA = new Date(a['Time'] || 0);
-      var timeB = new Date(b['Time'] || 0);
+      var timeA = parseTimeToTimestamp(a['Time']);
+      var timeB = parseTimeToTimestamp(b['Time']);
       
       if (order === 'oldest') {
         return timeA - timeB; // Ascending
